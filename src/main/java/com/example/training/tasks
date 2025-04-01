@@ -1,0 +1,285 @@
+Here are **10 Java tasks** that progressively increase in difficulty and cover various Java concurrency concepts. 🚀
+
+---
+
+### **1. Basic Thread Creation (Easy)**
+**Concepts Covered:** `Thread`, `Runnable`
+📝 **Task:** Create a Java program where two threads print numbers from 1 to 5.
+
+```java
+class NumberPrinter implements Runnable {
+    private final int start;
+
+    public NumberPrinter(int start) {
+        this.start = start;
+    }
+
+    @Override
+    public void run() {
+        for (int i = start; i < start + 5; i++) {
+            System.out.println(Thread.currentThread().getName() + " -> " + i);
+            try { Thread.sleep(500); } catch (InterruptedException e) { }
+        }
+    }
+}
+
+public class ThreadExample {
+    public static void main(String[] args) {
+        Thread t1 = new Thread(new NumberPrinter(1), "Thread-1");
+        Thread t2 = new Thread(new NumberPrinter(6), "Thread-2");
+
+        t1.start();
+        t2.start();
+    }
+}
+```
+
+---
+
+### **2. Synchronized Method (Easy)**
+**Concepts Covered:** `syncheronized`, race condition prevention
+📝 **Task:** Create a `Counter` class where multiple threads increment a shared variable safely.
+
+```java
+class Counter {
+    private int count = 0;
+
+    public synchronized void increment() {
+        count++;
+    }
+
+    public int getCount() {
+        return count;
+    }
+}
+
+public class SyncExample {
+    public static void main(String[] args) throws InterruptedException {
+        Counter counter = new Counter();
+
+        Thread t1 = new Thread(() -> {
+            for (int i = 0; i < 1000; i++) counter.increment();
+        });
+
+        Thread t2 = new Thread(() -> {
+            for (int i = 0; i < 1000; i++) counter.increment();
+        });
+
+        t1.start();
+        t2.start();
+        t1.join();
+        t2.join();
+
+        System.out.println("Final count: " + counter.getCount());
+    }
+}
+```
+
+---
+
+### **3. Producer-Consumer (Medium)**
+
+
+import java.util.LinkedList;
+
+class SharedBuffer {
+    private final LinkedList<Integer> buffer = new LinkedList<>();
+    private final int capacity = 5;
+
+    public synchronized void produce(int value) throws InterruptedException {
+        while (buffer.size() == capacity) { // Buffer full, wait
+            wait();
+        }
+        buffer.add(value);
+        System.out.println("Produced: " + value);
+        notify(); // Notify Consumer
+    }
+
+    public synchronized int consume() throws InterruptedException {
+        while (buffer.isEmpty()) { // Buffer empty, wait
+            wait();
+        }
+        int value = buffer.removeFirst();
+        System.out.println("Consumed: " + value);
+        notify(); // Notify Producer
+        return value;
+    }
+}
+
+public class ProducerConsumerWaitNotify {
+    public static void main(String[] args) {
+        SharedBuffer buffer = new SharedBuffer();
+
+        Thread producer = new Thread(() -> {
+            try {
+                for (int i = 0; i < 10; i++) {
+                    buffer.produce(i);
+                    Thread.sleep(500); // Simulate production time
+                }
+            } catch (InterruptedException e) { e.printStackTrace(); }
+        });
+
+        Thread consumer = new Thread(() -> {
+            try {
+                for (int i = 0; i < 10; i++) {
+                    buffer.consume();
+                    Thread.sleep(1000); // Simulate processing time
+                }
+            } catch (InterruptedException e) { e.printStackTrace(); }
+        });
+
+        producer.start();
+        consumer.start();
+    }
+}
+
+
+
+
+**Concepts Covered:** `wait()`, `notify()`, `BlockingQueue`
+📝 **Task:** Implement a producer-consumer model using `BlockingQueue`.
+
+```java
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
+class Producer implements Runnable {
+    private BlockingQueue<Integer> queue;
+
+    public Producer(BlockingQueue<Integer> queue) {
+        this.queue = queue;
+    }
+
+    @Override
+    public void run() {
+        try {
+            for (int i = 1; i <= 5; i++) {
+                queue.put(i);
+                System.out.println("Produced: " + i);
+                Thread.sleep(1000);
+            }
+        } catch (InterruptedException ignored) {}
+    }
+}
+
+class Consumer implements Runnable {
+    private BlockingQueue<Integer> queue;
+
+    public Consumer(BlockingQueue<Integer> queue) {
+        this.queue = queue;
+    }
+
+    @Override
+    public void run() {
+        try {
+            while (true) {
+                Integer value = queue.take();
+                System.out.println("Consumed: " + value);
+            }
+        } catch (InterruptedException ignored) {}
+    }
+}
+
+public class ProducerConsumerExample {
+    public static void main(String[] args) {
+        BlockingQueue<Integer> queue = new LinkedBlockingQueue<>(3);
+        new Thread(new Producer(queue)).start();
+        new Thread(new Consumer(queue)).start();
+    }
+}
+```
+
+---
+
+
+
+
+
+
+### **4. Deadlock Simulation (Medium)**
+**Concepts Covered:** Deadlock, `synchronized`
+📝 **Task:** Simulate deadlock using two threads and two resources.
+
+```java
+class Resource {
+    private final String name;
+
+    public Resource(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+}
+
+public class DeadlockExample {
+    public static void main(String[] args) {
+        Resource r1 = new Resource("Resource-1");
+        Resource r2 = new Resource("Resource-2");
+
+        Thread t1 = new Thread(() -> {
+            synchronized (r1) {
+                System.out.println("Thread-1 locked " + r1.getName());
+                try { Thread.sleep(100); } catch (InterruptedException ignored) {}
+                synchronized (r2) {
+                    System.out.println("Thread-1 locked " + r2.getName());
+                }
+            }
+        });
+
+        Thread t2 = new Thread(() -> {
+            synchronized (r2) {
+                System.out.println("Thread-2 locked " + r2.getName());
+                try { Thread.sleep(100); } catch (InterruptedException ignored) {}
+                synchronized (r1) {
+                    System.out.println("Thread-2 locked " + r1.getName());
+                }
+            }
+        });
+
+        t1.start();
+        t2.start();
+    }
+}
+```
+
+---
+
+### **5. ReentrantLock (Medium)**
+**Concepts Covered:** `ReentrantLock`, avoiding deadlocks
+📝 **Task:** Solve the above deadlock using `ReentrantLock`.
+
+---
+
+### **6. Callable and Future (Medium)**
+**Concepts Covered:** `Callable`, `Future`, `ExecutorService`
+📝 **Task:** Use `Callable` to return a sum of numbers from 1 to 1000.
+
+---
+
+### **7. ReadWriteLock (Hard)**
+**Concepts Covered:** `ReadWriteLock`, concurrent read optimization
+📝 **Task:** Implement a thread-safe counter where multiple threads can read simultaneously but only one can write.
+
+---
+
+### **8. ForkJoinPool (Hard)**
+**Concepts Covered:** `ForkJoinPool`, parallel computation
+📝 **Task:** Use `ForkJoinPool` to sum an array of numbers efficiently.
+
+---
+
+### **9. Custom Thread Pool (Very Hard)**
+**Concepts Covered:** `ThreadPoolExecutor`, queue management
+📝 **Task:** Implement a custom thread pool using `ExecutorService`.
+
+---
+
+### **10. CompletableFuture (Very Hard)**
+**Concepts Covered:** `CompletableFuture`, async programming
+📝 **Task:** Implement an API call simulation using `CompletableFuture` that fetches and combines results from two different sources asynchronously.
+
+---
+
+Would you like solutions for the harder ones too? 🚀
